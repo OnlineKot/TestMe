@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TestMe — Speed &amp; Performance Test Suite</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --panel2: #1c2330;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #2f81f7;
+    --accent2: #3fb950;
+    --danger: #f85149;
+    --warn: #d29922;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+  }
+  header {
+    text-align: center;
+    padding: 28px 16px 12px;
+  }
+  header h1 { font-size: 1.9rem; letter-spacing: 0.5px; }
+  header h1 span { color: var(--accent); }
+  header p { color: var(--muted); margin-top: 6px; }
+  nav {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+    padding: 18px 16px;
+  }
+  nav button {
+    background: var(--panel);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 18px;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  nav button:hover { border-color: var(--accent); }
+  nav button.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+    font-weight: 600;
+  }
+  main { max-width: 900px; margin: 0 auto; padding: 0 16px 60px; }
+  section.tab { display: none; }
+  section.tab.active { display: block; animation: fade .25s; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px);} to { opacity: 1; transform: none;} }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 18px;
+  }
+  .card h2 { font-size: 1.25rem; margin-bottom: 4px; }
+  .card .sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 16px; }
+  .btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    padding: 12px 26px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter .15s;
+  }
+  .btn:hover:not(:disabled) { filter: brightness(1.15); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn.secondary { background: var(--panel2); border: 1px solid var(--border); }
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+  }
+  .stat {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    text-align: center;
+  }
+  .stat .label { color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 1px; }
+  .stat .value { font-size: 1.6rem; font-weight: 700; margin-top: 4px; }
+  .stat .value small { font-size: 0.85rem; color: var(--muted); font-weight: 400; }
+  .progress {
+    height: 10px;
+    background: var(--panel2);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-top: 16px;
+    border: 1px solid var(--border);
+  }
+  .progress > div {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    transition: width .2s;
+  }
+  .status { color: var(--muted); margin-top: 10px; font-size: 0.9rem; min-height: 1.2em; }
+  .options { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .options button {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 8px 14px;
+    cursor: pointer;
+  }
+  .options button.sel { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+  /* CPS */
+  #clickZone {
+    margin-top: 16px;
+    height: 220px;
+    border: 2px dashed var(--border);
+    border-radius: 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    transition: background .1s, border-color .15s;
+  }
+  #clickZone:active { background: #1f2a3d; }
+  #clickZone.running { border-color: var(--accent); }
+  #clickZone .big { font-size: 2.6rem; font-weight: 800; }
+
+  /* GPU */
+  #glCanvas {
+    width: 100%;
+    height: 300px;
+    border-radius: 10px;
+    background: #000;
+    display: block;
+    margin-top: 14px;
+    border: 1px solid var(--border);
+  }
+
+  /* Typing */
+  #typingText {
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    font-family: "Consolas", "Menlo", monospace;
+    font-size: 1.1rem;
+    line-height: 1.9;
+    margin-top: 14px;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #typingText span.ok { color: var(--accent2); }
+  #typingText span.bad { color: var(--danger); text-decoration: underline; }
+  #typingText span.cur { background: var(--accent); color: #fff; border-radius: 2px; }
+  #typingInput {
+    width: 100%;
+    margin-top: 12px;
+    background: var(--panel2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-family: "Consolas", "Menlo", monospace;
+    font-size: 1.05rem;
+    padding: 12px;
+    outline: none;
+  }
+  #typingInput:focus { border-color: var(--accent); }
+  .gauge-note { font-size: .8rem; color: var(--muted); margin-top: 10px; }
+  footer { text-align: center; color: var(--muted); font-size: .8rem; padding: 20px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Test<span>Me</span> ⚡</h1>
+  <p>WiFi · CPS · GPU · CPU · Typing — all-in-one performance test suite</p>
+</header>
+
+<nav>
+  <button class="active" data-tab="wifi">🌐 WiFi Speed</button>
+  <button data-tab="cps">🖱️ CPS Test</button>
+  <button data-tab="gpu">🎮 GPU Test</button>
+  <button data-tab="cpu">🧠 CPU Test</button>
+  <button data-tab="typing">⌨️ Typing Test</button>
+</nav>
+
+<main>
+
+<!-- ============ WIFI ============ -->
+<section class="tab active" id="tab-wifi">
+  <div class="card">
+    <h2>Internet / WiFi Speed Test</h2>
+    <p class="sub">Measures ping, jitter, download and upload speed using Cloudflare's speed test servers.</p>
+    <button class="btn" id="wifiStart">Start Test</button>
+    <div class="progress"><div id="wifiBar"></div></div>
+    <div class="status" id="wifiStatus">Ready.</div>
+    <div class="stats">
+      <div class="stat"><div class="label">Ping</div><div class="value" id="wifiPing">– <small>ms</small></div></div>
+      <div class="stat"><div class="label">Jitter</div><div class="value" id="wifiJitter">– <small>ms</small></div></div>
+      <div class="stat"><div class="label">Download</div><div class="value" id="wifiDown">– <small>Mbps</small></div></div>
+      <div class="stat"><div class="label">Upload</div><div class="value" id="wifiUp">– <small>Mbps</small></div></div>
+    </div>
+    <p class="gauge-note">Note: results reflect your full internet connection, not only the WiFi link. Requires internet access.</p>
+  </div>
+</section>
+
+<!-- ============ CPS ============ -->
+<section class="tab" id="tab-cps">
+  <div class="card">
+    <h2>Clicks Per Second (CPS) Test</h2>
+    <p class="sub">Click the area below as fast as you can. The timer starts on your first click.</p>
+    <div class="options" id="cpsDur">
+      <button data-d="1">1s</button>
+      <button data-d="5" class="sel">5s</button>
+      <button data-d="10">10s</button>
+      <button data-d="30">30s</button>
+    </div>
+    <div id="clickZone">
+      <div class="big" id="cpsBig">Click to start!</div>
+      <div id="cpsSubText">&nbsp;</div>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="label">Clicks</div><div class="value" id="cpsClicks">0</div></div>
+      <div class="stat"><div class="label">Time left</div><div class="value" id="cpsTime">5.0 <small>s</small></div></div>
+      <div class="stat"><div class="label">CPS</div><div class="value" id="cpsResult">–</div></div>
+      <div class="stat"><div class="label">Best CPS</div><div class="value" id="cpsBest">–</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ GPU ============ -->
+<section class="tab" id="tab-gpu">
+  <div class="card">
+    <h2>GPU Benchmark (WebGL)</h2>
+    <p class="sub">Renders thousands of animated triangles with WebGL and measures your average FPS under increasing load (~12 seconds).</p>
+    <button class="btn" id="gpuStart">Start Benchmark</button>
+    <canvas id="glCanvas"></canvas>
+    <div class="progress"><div id="gpuBar"></div></div>
+    <div class="status" id="gpuStatus">Ready.</div>
+    <div class="stats">
+      <div class="stat"><div class="label">Avg FPS</div><div class="value" id="gpuFps">–</div></div>
+      <div class="stat"><div class="label">Triangles</div><div class="value" id="gpuTris">–</div></div>
+      <div class="stat"><div class="label">Score</div><div class="value" id="gpuScore">–</div></div>
+    </div>
+    <div class="status" id="gpuInfo"></div>
+  </div>
+</section>
+
+<!-- ============ CPU ============ -->
+<section class="tab" id="tab-cpu">
+  <div class="card">
+    <h2>CPU Benchmark</h2>
+    <p class="sub">Runs math, prime-sieve and string workloads in JavaScript — single-core first, then all cores in parallel using Web Workers.</p>
+    <button class="btn" id="cpuStart">Start Benchmark</button>
+    <div class="progress"><div id="cpuBar"></div></div>
+    <div class="status" id="cpuStatus">Ready.</div>
+    <div class="stats">
+      <div class="stat"><div class="label">Threads detected</div><div class="value" id="cpuThreads">–</div></div>
+      <div class="stat"><div class="label">Single-core score</div><div class="value" id="cpuSingle">–</div></div>
+      <div class="stat"><div class="label">Multi-core score</div><div class="value" id="cpuMulti">–</div></div>
+      <div class="stat"><div class="label">Multi-core scaling</div><div class="value" id="cpuScale">–</div></div>
+    </div>
+    <p class="gauge-note">Score = millions of operations per second (higher is better). Results vary by browser.</p>
+  </div>
+</section>
+
+<!-- ============ TYPING ============ -->
+<section class="tab" id="tab-typing">
+  <div class="card">
+    <h2>Typing Speed Test</h2>
+    <p class="sub">Type the text below. The 60-second timer starts on your first keystroke.</p>
+    <div class="options">
+      <button class="btn secondary" id="typingReset">New Text / Reset</button>
+    </div>
+    <div id="typingText"></div>
+    <input id="typingInput" type="text" placeholder="Start typing here..." autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    <div class="stats">
+      <div class="stat"><div class="label">Time left</div><div class="value" id="typTime">60 <small>s</small></div></div>
+      <div class="stat"><div class="label">WPM</div><div class="value" id="typWpm">–</div></div>
+      <div class="stat"><div class="label">Accuracy</div><div class="value" id="typAcc">– <small>%</small></div></div>
+      <div class="stat"><div class="label">Characters</div><div class="value" id="typChars">0</div></div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer>TestMe — runs entirely in your browser. No data is stored or sent anywhere (except to the speed-test servers during the WiFi test).</footer>
+
+<script>
+"use strict";
+
+/* ===================== Tabs ===================== */
+document.querySelectorAll("nav button").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll("nav button").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll("section.tab").forEach(s => s.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+  });
+});
+
+const $ = id => document.getElementById(id);
+
+/* ===================== WiFi speed test ===================== */
+(() => {
+  const DOWN_URL = bytes => `https://speed.cloudflare.com/__down?bytes=${bytes}`;
+  const UP_URL = "https://speed.cloudflare.com/__up";
+  let running = false;
+
+  const setBar = p => $("wifiBar").style.width = p + "%";
+  const status = t => $("wifiStatus").textContent = t;
+
+  async function measurePing(samples = 8) {
+    const times = [];
+    for (let i = 0; i < samples; i++) {
+      const t0 = performance.now();
+      await fetch(DOWN_URL(0) + "&r=" + Math.random(), { cache: "no-store" });
+      times.push(performance.now() - t0);
+      setBar((i + 1) / samples * 15);
+    }
+    times.sort((a, b) => a - b);
+    const ping = times[0];
+    const avg = times.reduce((a, b) => a + b, 0) / times.length;
+    const jitter = Math.sqrt(times.reduce((a, b) => a + (b - avg) ** 2, 0) / times.length);
+    return { ping, jitter };
+  }
+
+  async function measureDownload() {
+    // progressively larger transfers, ~10s max
+    const sizes = [1e6, 5e6, 10e6, 25e6];
+    let totalBytes = 0, totalTime = 0;
+    for (let i = 0; i < sizes.length; i++) {
+      const t0 = performance.now();
+      const res = await fetch(DOWN_URL(sizes[i]) + "&r=" + Math.random(), { cache: "no-store" });
+      const reader = res.body.getReader();
+      let got = 0;
+      for (;;) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        got += value.length;
+      }
+      const dt = (performance.now() - t0) / 1000;
+      totalBytes += got; totalTime += dt;
+      const mbps = (totalBytes * 8 / totalTime / 1e6);
+      $("wifiDown").innerHTML = mbps.toFixed(1) + " <small>Mbps</small>";
+      setBar(15 + (i + 1) / sizes.length * 45);
+      if (totalTime > 10) break;
+    }
+    return totalBytes * 8 / totalTime / 1e6;
+  }
+
+  async function measureUpload() {
+    const sizes = [5e5, 1e6, 5e6, 10e6];
+    let totalBytes = 0, totalTime = 0;
+    for (let i = 0; i < sizes.length; i++) {
+      const blob = new Blob([new Uint8Array(sizes[i])]);
+      const t0 = performance.now();
+      await fetch(UP_URL, { method: "POST", body: blob });
+      const dt = (performance.now() - t0) / 1000;
+      totalBytes += sizes[i]; totalTime += dt;
+      const mbps = (totalBytes * 8 / totalTime / 1e6);
+      $("wifiUp").innerHTML = mbps.toFixed(1) + " <small>Mbps</small>";
+      setBar(60 + (i + 1) / sizes.length * 40);
+      if (totalTime > 8) break;
+    }
+    return totalBytes * 8 / totalTime / 1e6;
+  }
+
+  $("wifiStart").addEventListener("click", async () => {
+    if (running) return;
+    running = true;
+    $("wifiStart").disabled = true;
+    ["wifiPing","wifiJitter","wifiDown","wifiUp"].forEach(id => $(id).innerHTML = "– <small>" + ($(id).querySelector("small")?.textContent || "") + "</small>");
+    try {
+      status("Measuring ping…");
+      const { ping, jitter } = await measurePing();
+      $("wifiPing").innerHTML = ping.toFixed(0) + " <small>ms</small>";
+      $("wifiJitter").innerHTML = jitter.toFixed(1) + " <small>ms</small>";
+      status("Measuring download speed…");
+      const down = await measureDownload();
+      $("wifiDown").innerHTML = down.toFixed(1) + " <small>Mbps</small>";
+      status("Measuring upload speed…");
+      const up = await measureUpload();
+      $("wifiUp").innerHTML = up.toFixed(1) + " <small>Mbps</small>";
+      setBar(100);
+      status("Done! ✅");
+    } catch (e) {
+      status("Test failed — check your internet connection. (" + e.message + ")");
+    }
+    $("wifiStart").disabled = false;
+    running = false;
+  });
+})();
+
+/* ===================== CPS test ===================== */
+(() => {
+  let duration = 5, clicks = 0, startT = 0, timer = null, running = false, best = 0;
+
+  document.querySelectorAll("#cpsDur button").forEach(b => {
+    b.addEventListener("click", () => {
+      if (running) return;
+      document.querySelectorAll("#cpsDur button").forEach(x => x.classList.remove("sel"));
+      b.classList.add("sel");
+      duration = +b.dataset.d;
+      reset();
+    });
+  });
+
+  function reset() {
+    clicks = 0; running = false;
+    clearInterval(timer);
+    $("cpsBig").textContent = "Click to start!";
+    $("cpsSubText").innerHTML = "&nbsp;";
+    $("cpsClicks").textContent = "0";
+    $("cpsTime").innerHTML = duration.toFixed(1) + " <small>s</small>";
+    $("clickZone").classList.remove("running");
+  }
+
+  function finish() {
+    clearInterval(timer);
+    running = false;
+    const cps = clicks / duration;
+    best = Math.max(best, cps);
+    $("cpsResult").textContent = cps.toFixed(2);
+    $("cpsBest").textContent = best.toFixed(2);
+    $("cpsBig").textContent = cps.toFixed(2) + " CPS!";
+    $("cpsSubText").textContent = "Click again to retry";
+    $("cpsTime").innerHTML = "0.0 <small>s</small>";
+    $("clickZone").classList.remove("running");
+    clicks = 0;
+  }
+
+  $("clickZone").addEventListener("pointerdown", e => {
+    e.preventDefault();
+    if (!running) {
+      running = true;
+      clicks = 0;
+      startT = performance.now();
+      $("clickZone").classList.add("running");
+      $("cpsSubText").textContent = "GO GO GO!";
+      timer = setInterval(() => {
+        const left = duration - (performance.now() - startT) / 1000;
+        if (left <= 0) { finish(); return; }
+        $("cpsTime").innerHTML = left.toFixed(1) + " <small>s</small>";
+      }, 50);
+    }
+    clicks++;
+    $("cpsClicks").textContent = clicks;
+    $("cpsBig").textContent = clicks;
+  });
+})();
+
+/* ===================== GPU test ===================== */
+(() => {
+  const canvas = $("glCanvas");
+  let running = false;
+
+  function getGL() {
+    return canvas.getContext("webgl", { antialias: true, powerPreference: "high-performance" })
+        || canvas.getContext("experimental-webgl");
+  }
+
+  // show GPU info immediately
+  (() => {
+    const gl = getGL();
+    if (!gl) { $("gpuInfo").textContent = "WebGL is not supported in this browser."; return; }
+    const dbg = gl.getExtension("WEBGL_debug_renderer_info");
+    const renderer = dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER);
+    $("gpuInfo").textContent = "Detected GPU: " + renderer;
+  })();
+
+  $("gpuStart").addEventListener("click", () => {
+    if (running) return;
+    const gl = getGL();
+    if (!gl) { $("gpuStatus").textContent = "WebGL not supported."; return; }
+    running = true;
+    $("gpuStart").disabled = true;
+
+    canvas.width = canvas.clientWidth * (window.devicePixelRatio || 1);
+    canvas.height = canvas.clientHeight * (window.devicePixelRatio || 1);
+    gl.viewport(0, 0, canvas.width, canvas.height);
+
+    const vsSrc = `
+      attribute vec2 aPos;
+      attribute vec3 aCol;
+      uniform float uTime;
+      uniform float uSeed;
+      varying vec3 vCol;
+      void main() {
+        float a = uTime * (0.5 + fract(uSeed * 13.7)) + uSeed;
+        float c = cos(a), s = sin(a);
+        vec2 p = mat2(c, -s, s, c) * aPos * 0.05;
+        vec2 center = vec2(fract(uSeed * 7.31) * 2.0 - 1.0,
+                           fract(uSeed * 3.17) * 2.0 - 1.0);
+        center += 0.15 * vec2(cos(uTime + uSeed * 6.28), sin(uTime * 1.3 + uSeed * 6.28));
+        gl_Position = vec4(p + center, 0.0, 1.0);
+        vCol = aCol;
+      }`;
+    const fsSrc = `
+      precision mediump float;
+      varying vec3 vCol;
+      void main() { gl_FragColor = vec4(vCol, 1.0); }`;
+
+    function compile(type, src) {
+      const sh = gl.createShader(type);
+      gl.shaderSource(sh, src);
+      gl.compileShader(sh);
+      return sh;
+    }
+    const prog = gl.createProgram();
+    gl.attachShader(prog, compile(gl.VERTEX_SHADER, vsSrc));
+    gl.attachShader(prog, compile(gl.FRAGMENT_SHADER, fsSrc));
+    gl.linkProgram(prog);
+    gl.useProgram(prog);
+
+    const verts = new Float32Array([
+      0, 1,    1, 0.2, 0.3,
+      -0.87, -0.5,  0.2, 1, 0.5,
+      0.87, -0.5,  0.3, 0.5, 1
+    ]);
+    const buf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, verts, gl.STATIC_DRAW);
+    const aPos = gl.getAttribLocation(prog, "aPos");
+    const aCol = gl.getAttribLocation(prog, "aCol");
+    gl.enableVertexAttribArray(aPos);
+    gl.enableVertexAttribArray(aCol);
+    gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 20, 0);
+    gl.vertexAttribPointer(aCol, 3, gl.FLOAT, false, 20, 8);
+    const uTime = gl.getUniformLocation(prog, "uTime");
+    const uSeed = gl.getUniformLocation(prog, "uSeed");
+
+    // benchmark: 4 levels of load, 3 seconds each
+    const levels = [500, 2000, 8000, 20000];
+    const LEVEL_MS = 3000;
+    let level = 0, levelStart = performance.now(), frames = 0;
+    const fpsPerLevel = [];
+    const t0 = performance.now();
+
+    function frame(now) {
+      const n = levels[level];
+      gl.clearColor(0.02, 0.02, 0.05, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      const t = (now - t0) / 1000;
+      gl.uniform1f(uTime, t);
+      for (let i = 0; i < n; i++) {
+        gl.uniform1f(uSeed, i * 0.618);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+      }
+      frames++;
+      $("gpuTris").textContent = n.toLocaleString();
+
+      const elapsed = now - levelStart;
+      if (elapsed >= LEVEL_MS) {
+        const fps = frames / (elapsed / 1000);
+        fpsPerLevel.push({ n, fps });
+        $("gpuStatus").textContent = `Level ${level + 1}/${levels.length}: ${n.toLocaleString()} triangles → ${fps.toFixed(1)} FPS`;
+        level++; frames = 0; levelStart = now;
+        $("gpuBar").style.width = (level / levels.length * 100) + "%";
+        if (level >= levels.length) { finish(); return; }
+      }
+      requestAnimationFrame(frame);
+    }
+
+    function finish() {
+      const avgFps = fpsPerLevel.reduce((a, b) => a + b.fps, 0) / fpsPerLevel.length;
+      // score: triangles rendered per second across all levels, in millions
+      const score = fpsPerLevel.reduce((a, b) => a + b.fps * b.n, 0) / 1e6;
+      $("gpuFps").textContent = avgFps.toFixed(1);
+      $("gpuScore").textContent = score.toFixed(1);
+      $("gpuStatus").textContent = "Done! ✅ Score = millions of triangles rendered per second (higher is better).";
+      $("gpuBar").style.width = "100%";
+      $("gpuStart").disabled = false;
+      running = false;
+    }
+
+    $("gpuStatus").textContent = "Running…";
+    $("gpuBar").style.width = "0%";
+    requestAnimationFrame(frame);
+  });
+})();
+
+/* ===================== CPU test ===================== */
+(() => {
+  let running = false;
+  const threads = navigator.hardwareConcurrency || 4;
+  $("cpuThreads").textContent = threads;
+
+  // The benchmark kernel — must be self-contained (it is stringified into workers).
+  function kernel(iterations) {
+    let x = 0.0001;
+    // floating point + math functions
+    for (let i = 0; i < iterations; i++) {
+      x += Math.sin(i * 0.001) * Math.cos(x) + Math.sqrt(i % 1000 + 1);
+      if (x > 1e9) x = 0.0001;
+    }
+    // prime sieve
+    const N = 20000;
+    const sieve = new Uint8Array(N);
+    let primes = 0;
+    for (let i = 2; i < N; i++) {
+      if (!sieve[i]) { primes++; for (let j = i * i; j < N; j += i) sieve[j] = 1; }
+    }
+    // integer hashing
+    let h = 2166136261 >>> 0;
+    for (let i = 0; i < iterations; i++) {
+      h ^= i; h = Math.imul(h, 16777619) >>> 0;
+    }
+    return x + primes + h;
+  }
+
+  const ITER = 2_000_000;
+
+  function singleCoreRun(ms = 3000) {
+    return new Promise(resolve => {
+      let ops = 0;
+      const t0 = performance.now();
+      function chunk() {
+        kernel(ITER);
+        ops += ITER * 2; // ~2 heavy op-groups per iteration
+        const elapsed = performance.now() - t0;
+        $("cpuBar").style.width = Math.min(50, elapsed / ms * 50) + "%";
+        if (elapsed < ms) setTimeout(chunk, 0);
+        else resolve(ops / elapsed / 1000); // M ops/sec
+      }
+      chunk();
+    });
+  }
+
+  function multiCoreRun(ms = 3000) {
+    const workerSrc = `
+      ${kernel.toString()}
+      onmessage = (e) => {
+        const { iter, ms } = e.data;
+        let ops = 0;
+        const t0 = performance.now();
+        while (performance.now() - t0 < ms) {
+          kernel(iter);
+          ops += iter * 2;
+        }
+        postMessage(ops / (performance.now() - t0) / 1000);
+      };`;
+    const blobUrl = URL.createObjectURL(new Blob([workerSrc], { type: "application/javascript" }));
+    const workers = [];
+    const promises = [];
+    for (let i = 0; i < threads; i++) {
+      const w = new Worker(blobUrl);
+      workers.push(w);
+      promises.push(new Promise((res, rej) => {
+        w.onmessage = e => res(e.data);
+        w.onerror = err => rej(err);
+      }));
+      w.postMessage({ iter: ITER, ms });
+    }
+    // fake progress bar while workers run
+    const t0 = performance.now();
+    const prog = setInterval(() => {
+      $("cpuBar").style.width = (50 + Math.min(50, (performance.now() - t0) / ms * 50)) + "%";
+    }, 100);
+    return Promise.all(promises).finally(() => {
+      clearInterval(prog);
+      workers.forEach(w => w.terminate());
+      URL.revokeObjectURL(blobUrl);
+    }).then(scores => scores.reduce((a, b) => a + b, 0));
+  }
+
+  $("cpuStart").addEventListener("click", async () => {
+    if (running) return;
+    running = true;
+    $("cpuStart").disabled = true;
+    $("cpuBar").style.width = "0%";
+    ["cpuSingle","cpuMulti","cpuScale"].forEach(id => $(id).textContent = "–");
+    try {
+      $("cpuStatus").textContent = "Running single-core benchmark…";
+      const single = await singleCoreRun();
+      $("cpuSingle").textContent = single.toFixed(1);
+      $("cpuStatus").textContent = `Running multi-core benchmark on ${threads} threads…`;
+      const multi = await multiCoreRun();
+      $("cpuMulti").textContent = multi.toFixed(1);
+      $("cpuScale").textContent = (multi / single).toFixed(2) + "×";
+      $("cpuBar").style.width = "100%";
+      $("cpuStatus").textContent = "Done! ✅";
+    } catch (e) {
+      $("cpuStatus").textContent = "Benchmark failed: " + e.message;
+    }
+    $("cpuStart").disabled = false;
+    running = false;
+  });
+})();
+
+/* ===================== Typing test ===================== */
+(() => {
+  const SENTENCES = [
+    "The quick brown fox jumps over the lazy dog while the sun sets behind the distant mountains.",
+    "Technology has changed the way people communicate, work, and spend their free time every single day.",
+    "A journey of a thousand miles begins with a single step, so never be afraid to start something new.",
+    "Practice makes perfect, and the more you type, the faster and more accurate your fingers will become.",
+    "The old lighthouse stood proudly on the rocky cliff, guiding ships safely through the stormy night.",
+    "Learning to code opens countless doors, teaching you how to think clearly and solve complex problems.",
+    "Fresh coffee in the morning is one of life's simple pleasures that many people cannot live without.",
+    "The library was quiet except for the soft sound of pages turning and pencils scratching on paper.",
+    "Every great achievement starts as an idea in someone's mind before it becomes reality through hard work.",
+    "The garden bloomed with colorful flowers, attracting bees and butterflies from all across the valley."
+  ];
+  const DURATION = 60;
+  let text = "", started = false, finished = false, startT = 0, timer = null;
+  let totalTyped = 0, totalErrors = 0;
+
+  const input = $("typingInput");
+  const disp = $("typingText");
+
+  function pickText() {
+    const shuffled = SENTENCES.slice().sort(() => Math.random() - 0.5);
+    text = shuffled.join(" ");
+  }
+
+  function render() {
+    const typed = input.value;
+    let html = "";
+    const windowStart = Math.max(0, typed.length - 120);
+    const windowEnd = Math.min(text.length, typed.length + 160);
+    for (let i = windowStart; i < windowEnd; i++) {
+      const ch = text[i] === " " ? "&nbsp;" : text[i].replace(/</g, "&lt;");
+      if (i < typed.length) {
+        html += `<span class="${typed[i] === text[i] ? "ok" : "bad"}">${ch}</span>`;
+      } else if (i === typed.length) {
+        html += `<span class="cur">${ch}</span>`;
+      } else {
+        html += ch;
+      }
+    }
+    disp.innerHTML = html;
+  }
+
+  function updateStats() {
+    const elapsed = started ? (performance.now() - startT) / 1000 : 0;
+    const typed = input.value;
+    let correct = 0;
+    for (let i = 0; i < typed.length; i++) if (typed[i] === text[i]) correct++;
+    const minutes = Math.max(elapsed, 1) / 60;
+    const wpm = (correct / 5) / minutes;
+    const acc = totalTyped ? (Math.max(0, totalTyped - totalErrors) / totalTyped * 100) : 100;
+    $("typWpm").textContent = elapsed > 1 ? wpm.toFixed(0) : "–";
+    $("typAcc").innerHTML = acc.toFixed(1) + " <small>%</small>";
+    $("typChars").textContent = typed.length;
+  }
+
+  function finish() {
+    finished = true;
+    clearInterval(timer);
+    input.disabled = true;
+    const elapsed = (performance.now() - startT) / 1000;
+    const typed = input.value;
+    let correct = 0;
+    for (let i = 0; i < typed.length; i++) if (typed[i] === text[i]) correct++;
+    const wpm = (correct / 5) / (elapsed / 60);
+    $("typWpm").textContent = wpm.toFixed(0);
+    $("typTime").innerHTML = "0 <small>s</small>";
+    input.value = typed; // keep result visible
+    input.placeholder = "Time's up! Press 'New Text / Reset' to try again.";
+  }
+
+  function reset() {
+    clearInterval(timer);
+    started = false; finished = false;
+    totalTyped = 0; totalErrors = 0;
+    input.disabled = false;
+    input.value = "";
+    input.placeholder = "Start typing here...";
+    $("typTime").innerHTML = DURATION + " <small>s</small>";
+    $("typWpm").textContent = "–";
+    $("typAcc").innerHTML = "– <small>%</small>";
+    $("typChars").textContent = "0";
+    pickText();
+    render();
+    input.focus();
+  }
+
+  let prevLen = 0;
+  input.addEventListener("input", () => {
+    if (finished) return;
+    if (!started) {
+      started = true;
+      startT = performance.now();
+      timer = setInterval(() => {
+        const left = DURATION - (performance.now() - startT) / 1000;
+        if (left <= 0) { finish(); return; }
+        $("typTime").innerHTML = Math.ceil(left) + " <small>s</small>";
+        updateStats();
+      }, 200);
+    }
+    const typed = input.value;
+    if (typed.length > prevLen) {
+      totalTyped += typed.length - prevLen;
+      for (let i = prevLen; i < typed.length; i++) {
+        if (typed[i] !== text[i]) totalErrors++;
+      }
+    }
+    prevLen = typed.length;
+    if (typed.length >= text.length) { finish(); }
+    render();
+    updateStats();
+  });
+
+  $("typingReset").addEventListener("click", () => { prevLen = 0; reset(); });
+
+  pickText();
+  render();
+})();
+</script>
+</body>
+</html>
