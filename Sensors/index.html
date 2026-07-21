@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0b0f19">
+    <title>Sensor Check — sprawdzanie danych z czujników</title>
+    <style>
+        :root {
+            --bg: #0b0f19;
+            --card: #151b2b;
+            --card2: #1c2438;
+            --line: #2a344d;
+            --text: #e7ecf5;
+            --muted: #8b97b3;
+            --accent: #4f8cff;
+            --good: #2ecc71;
+            --warn: #f1c40f;
+            --bad: #e74c3c;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html, body {
+            margin: 0;
+            padding: 0;
+            background: var(--bg);
+            color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            font-size: 15px;
+            -webkit-text-size-adjust: 100%;
+        }
+        header {
+            padding: 18px 16px 12px;
+            border-bottom: 1px solid var(--line);
+            position: sticky;
+            top: 0;
+            background: rgba(11,15,25,0.92);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 10;
+        }
+        h1 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: -0.3px; }
+        header p { margin: 4px 0 0; color: var(--muted); font-size: 12.5px; }
+        main { padding: 14px 12px 40px; max-width: 640px; margin: 0 auto; }
+
+        .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+        button {
+            appearance: none;
+            border: 1px solid var(--line);
+            background: var(--card2);
+            color: var(--text);
+            font-size: 14px;
+            font-weight: 600;
+            padding: 11px 14px;
+            border-radius: 12px;
+            cursor: pointer;
+            flex: 1 1 auto;
+            min-width: 120px;
+            transition: transform .05s ease, background .15s ease;
+        }
+        button:active { transform: scale(0.97); }
+        button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+        button.rec { background: var(--bad); border-color: var(--bad); color: #fff; }
+        button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--line);
+            border-radius: 16px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+        .card h2 {
+            margin: 0 0 4px;
+            font-size: 14px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card .sub { color: var(--muted); font-size: 12px; margin: 0 0 10px; }
+        .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--muted); flex: 0 0 auto; }
+        .dot.on { background: var(--good); box-shadow: 0 0 8px var(--good); }
+        .dot.off { background: var(--bad); }
+
+        .rows { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+        .val {
+            background: var(--card2);
+            border-radius: 10px;
+            padding: 9px 8px;
+            text-align: center;
+        }
+        .val .k { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+        .val .v { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; margin-top: 2px; }
+        .val .u { color: var(--muted); font-size: 10px; }
+
+        /* Telefon w pudełku */
+        #boxCard { text-align: center; }
+        .box-state {
+            font-size: 26px;
+            font-weight: 800;
+            margin: 6px 0 2px;
+            letter-spacing: -0.5px;
+        }
+        .box-state.in { color: var(--warn); }
+        .box-state.out { color: var(--good); }
+        .box-hint { color: var(--muted); font-size: 12.5px; }
+        .light-bar {
+            height: 10px; border-radius: 6px; margin: 12px 0 4px;
+            background: linear-gradient(90deg, #10141f 0%, #f1c40f 100%);
+            position: relative; overflow: hidden;
+        }
+        .light-bar::after {
+            content: ""; position: absolute; top: 0; bottom: 0; right: 0;
+            width: var(--dark, 100%);
+            background: rgba(11,15,25,0.85);
+            transition: width .2s ease;
+        }
+
+        .log {
+            font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+            font-size: 11px;
+            color: var(--muted);
+            white-space: pre-wrap;
+            word-break: break-word;
+            max-height: 140px;
+            overflow: auto;
+        }
+        .badge {
+            display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px;
+            background: var(--card2); color: var(--muted); border: 1px solid var(--line);
+        }
+        .rec-info { color: var(--muted); font-size: 12px; margin-top: 8px; }
+        .rec-info b { color: var(--text); }
+        .ios-note {
+            background: #1a2436; border: 1px solid var(--line); border-radius: 12px;
+            padding: 10px 12px; font-size: 12.5px; color: var(--muted); margin-bottom: 12px;
+        }
+        a { color: var(--accent); }
+        @media (max-width: 360px) { .rows { grid-template-columns: 1fr 1fr; } }
+    </style>
+</head>
+<body>
+<header>
+    <h1>📟 Sensor Check</h1>
+    <p>Sprawdzanie danych z fizycznych czujników telefonu + nagrywanie. Android i iPhone.</p>
+</header>
+
+<main>
+    <div class="ios-note" id="iosNote">
+        Na <b>iPhone / iOS</b> przeglądarka wymaga zgody na dostęp do żyroskopu i akcelerometru.
+        Kliknij <b>„Włącz czujniki"</b> — pojawi się systemowe okno zezwolenia. Strona musi działać przez <b>HTTPS</b>.
+    </div>
+
+    <div class="actions">
+        <button class="primary" id="btnStart">▶️ Włącz czujniki</button>
+        <button class="rec" id="btnRec" disabled>⏺ Nagrywaj</button>
+        <button id="btnDownload" disabled>⬇️ Pobierz CSV</button>
+    </div>
+
+    <!-- Telefon w pudełku / czujnik zbliżeniowy i światła -->
+    <div class="card" id="boxCard">
+        <h2><span class="dot" id="dotBox"></span> Telefon w pudełku</h2>
+        <p class="sub">Wykrywanie na podstawie czujnika zbliżeniowego i światła (ekran zasłonięty / ciemno).</p>
+        <div class="box-state out" id="boxState">— czekam —</div>
+        <div class="box-hint" id="boxHint">Przyłóż palec do góry ekranu lub schowaj telefon, aby przetestować.</div>
+        <div class="light-bar" id="lightBar"></div>
+        <div class="rows" style="margin-top:12px">
+            <div class="val"><div class="k">Zbliżenie</div><div class="v" id="proxV">—</div><div class="u" id="proxU">cm</div></div>
+            <div class="val"><div class="k">Światło</div><div class="v" id="lightV">—</div><div class="u">lux</div></div>
+            <div class="val"><div class="k">Zasłonięty</div><div class="v" id="coverV">—</div><div class="u">stan</div></div>
+        </div>
+    </div>
+
+    <!-- Akcelerometr -->
+    <div class="card">
+        <h2><span class="dot" id="dotAcc"></span> Akcelerometr</h2>
+        <p class="sub">Przyspieszenie z uwzględnieniem grawitacji (m/s²).</p>
+        <div class="rows">
+            <div class="val"><div class="k">X</div><div class="v" id="accX">—</div></div>
+            <div class="val"><div class="k">Y</div><div class="v" id="accY">—</div></div>
+            <div class="val"><div class="k">Z</div><div class="v" id="accZ">—</div></div>
+        </div>
+    </div>
+
+    <!-- Żyroskop -->
+    <div class="card">
+        <h2><span class="dot" id="dotGyro"></span> Żyroskop</h2>
+        <p class="sub">Prędkość obrotowa (°/s).</p>
+        <div class="rows">
+            <div class="val"><div class="k">α</div><div class="v" id="gyroA">—</div></div>
+            <div class="val"><div class="k">β</div><div class="v" id="gyroB">—</div></div>
+            <div class="val"><div class="k">γ</div><div class="v" id="gyroG">—</div></div>
+        </div>
+    </div>
+
+    <!-- Orientacja / kompas -->
+    <div class="card">
+        <h2><span class="dot" id="dotOri"></span> Orientacja / kompas</h2>
+        <p class="sub">Pochylenie i kierunek (°). Kompas działa na iPhone przez webkitCompassHeading.</p>
+        <div class="rows">
+            <div class="val"><div class="k">Kierunek</div><div class="v" id="oriC">—</div><div class="u">°</div></div>
+            <div class="val"><div class="k">Pochył. przód</div><div class="v" id="oriB">—</div><div class="u">°</div></div>
+            <div class="val"><div class="k">Pochył. bok</div><div class="v" id="oriG">—</div><div class="u">°</div></div>
+        </div>
+    </div>
+
+    <!-- Nagrywanie -->
+    <div class="card">
+        <h2><span class="dot" id="dotRec" style="background:var(--muted)"></span> Nagrywanie danych</h2>
+        <p class="sub">Zapis próbek do pamięci, eksport do pliku CSV.</p>
+        <div class="rec-info">
+            Stan: <span class="badge" id="recBadge">bezczynny</span><br>
+            Zebrane próbki: <b id="recCount">0</b> · Czas: <b id="recTime">0.0 s</b>
+        </div>
+    </div>
+
+    <!-- Log / diagnostyka -->
+    <div class="card">
+        <h2>🔎 Diagnostyka</h2>
+        <p class="sub">Co przeglądarka faktycznie udostępnia na tym urządzeniu.</p>
+        <div class="log" id="log">Kliknij „Włącz czujniki", aby rozpocząć…</div>
+    </div>
+</main>
+
+<script>
+(function () {
+    "use strict";
+
+    // ---------- Stan ----------
+    var state = {
+        started: false,
+        recording: false,
+        recStart: 0,
+        samples: [],
+        latest: {
+            accX: null, accY: null, accZ: null,
+            gyroA: null, gyroB: null, gyroG: null,
+            oriC: null, oriB: null, oriG: null,
+            prox: null, light: null, covered: null
+        }
+    };
+
+    // ---------- Skróty ----------
+    function $(id) { return document.getElementById(id); }
+    function fmt(v, d) {
+        if (v === null || v === undefined || isNaN(v)) return "—";
+        return v.toFixed(d === undefined ? 2 : d);
+    }
+    function log(msg) {
+        var el = $("log");
+        var t = new Date().toLocaleTimeString();
+        el.textContent = "[" + t + "] " + msg + "\n" + el.textContent;
+    }
+    function setDot(id, on) {
+        var el = $(id);
+        el.className = "dot " + (on ? "on" : "off");
+    }
+
+    // ---------- Detekcja „telefon w pudełku" ----------
+    // Bazujemy na: 1) czujniku zbliżeniowym (jeśli jest), 2) natężeniu światła.
+    var LIGHT_DARK_THRESHOLD = 8; // lux — poniżej uznajemy za "ciemno / w pudełku"
+    function updateBox() {
+        var l = state.latest;
+        var proximityNear = (l.covered === true) || (l.prox !== null && l.prox < 5);
+        var dark = (l.light !== null && l.light <= LIGHT_DARK_THRESHOLD);
+        var inBox = proximityNear || dark;
+
+        var boxState = $("boxState");
+        var boxHint = $("boxHint");
+        setDot("dotBox", !inBox);
+        if (l.light === null && l.prox === null && l.covered === null) {
+            boxState.className = "box-state out";
+            boxState.textContent = "— czekam —";
+            return;
+        }
+        if (inBox) {
+            boxState.className = "box-state in";
+            boxState.textContent = "📦 W PUDEŁKU / zasłonięty";
+            boxHint.textContent = proximityNear
+                ? "Wykryto zbliżenie (ekran zasłonięty)."
+                : "Ciemno (≤ " + LIGHT_DARK_THRESHOLD + " lux) — telefon prawdopodobnie schowany.";
+        } else {
+            boxState.className = "box-state out";
+            boxState.textContent = "✅ NA ZEWNĄTRZ";
+            boxHint.textContent = "Telefon odsłonięty i w świetle.";
+        }
+
+        // pasek światła (im ciemniej, tym większa nakładka)
+        if (l.light !== null) {
+            var pct = Math.max(0, Math.min(100, 100 - (l.light / 400 * 100)));
+            $("lightBar").style.setProperty("--dark", pct + "%");
+        }
+    }
+
+    // ---------- Aktualizacja UI ----------
+    function render() {
+        var l = state.latest;
+        $("accX").textContent = fmt(l.accX);
+        $("accY").textContent = fmt(l.accY);
+        $("accZ").textContent = fmt(l.accZ);
+        $("gyroA").textContent = fmt(l.gyroA, 1);
+        $("gyroB").textContent = fmt(l.gyroB, 1);
+        $("gyroG").textContent = fmt(l.gyroG, 1);
+        $("oriC").textContent = fmt(l.oriC, 0);
+        $("oriB").textContent = fmt(l.oriB, 0);
+        $("oriG").textContent = fmt(l.oriG, 0);
+        $("proxV").textContent = l.prox === null ? "—" : fmt(l.prox, 1);
+        $("lightV").textContent = l.light === null ? "—" : fmt(l.light, 1);
+        $("coverV").textContent = l.covered === null ? "—" : (l.covered ? "TAK" : "nie");
+        updateBox();
+    }
+
+    // ---------- Nagrywanie ----------
+    function pushSample() {
+        if (!state.recording) return;
+        var l = state.latest;
+        state.samples.push({
+            t: ((performance.now() - state.recStart) / 1000).toFixed(3),
+            accX: l.accX, accY: l.accY, accZ: l.accZ,
+            gyroA: l.gyroA, gyroB: l.gyroB, gyroG: l.gyroG,
+            oriC: l.oriC, oriB: l.oriB, oriG: l.oriG,
+            prox: l.prox, light: l.light, covered: l.covered
+        });
+    }
+    function updateRecUI() {
+        $("recCount").textContent = state.samples.length;
+        var secs = state.recording ? (performance.now() - state.recStart) / 1000 : 0;
+        $("recTime").textContent = secs.toFixed(1) + " s";
+    }
+
+    // ---------- Handlery czujników ----------
+    function onMotion(e) {
+        var ag = e.accelerationIncludingGravity || {};
+        var rr = e.rotationRate || {};
+        if (ag.x !== null && ag.x !== undefined) {
+            state.latest.accX = ag.x; state.latest.accY = ag.y; state.latest.accZ = ag.z;
+            setDot("dotAcc", true);
+        }
+        if (rr.alpha !== null && rr.alpha !== undefined) {
+            state.latest.gyroA = rr.alpha; state.latest.gyroB = rr.beta; state.latest.gyroG = rr.gamma;
+            setDot("dotGyro", true);
+        }
+        pushSample();
+    }
+    function onOrientation(e) {
+        state.latest.oriB = e.beta;
+        state.latest.oriG = e.gamma;
+        // iOS podaje kompas w webkitCompassHeading (0 = północ)
+        if (typeof e.webkitCompassHeading === "number") {
+            state.latest.oriC = e.webkitCompassHeading;
+        } else if (typeof e.alpha === "number") {
+            state.latest.oriC = 360 - e.alpha; // przybliżenie na Androidzie
+        }
+        setDot("dotOri", true);
+    }
+
+    // Generic Sensor API (Chrome/Android): AmbientLightSensor, ProximitySensor (za flagą), itp.
+    function tryGenericSensors() {
+        // Światło
+        if ("AmbientLightSensor" in window) {
+            try {
+                var als = new AmbientLightSensor({ frequency: 5 });
+                als.addEventListener("reading", function () {
+                    state.latest.light = als.illuminance;
+                });
+                als.addEventListener("error", function (ev) {
+                    log("AmbientLightSensor błąd: " + (ev.error && ev.error.name));
+                });
+                als.start();
+                log("AmbientLightSensor: uruchomiony ✅");
+            } catch (err) {
+                log("AmbientLightSensor niedostępny: " + err.message);
+            }
+        } else {
+            log("AmbientLightSensor: brak w tej przeglądarce.");
+        }
+
+        // Zbliżenie — starsze API 'deviceproximity' / 'userproximity' (Firefox mobile)
+        if ("ondeviceproximity" in window) {
+            window.addEventListener("deviceproximity", function (e) {
+                state.latest.prox = e.value; // cm
+                setDot("dotBox", false);
+            });
+            log("deviceproximity: nasłuch ✅");
+        }
+        if ("onuserproximity" in window) {
+            window.addEventListener("userproximity", function (e) {
+                state.latest.covered = !!e.near;
+            });
+            log("userproximity: nasłuch ✅");
+        }
+        if (!("ondeviceproximity" in window) && !("onuserproximity" in window)) {
+            log("Czujnik zbliżeniowy: przeglądarka nie eksponuje API (typowe dla iOS/Chrome). Używam światła.");
+        }
+    }
+
+    // ---------- Start ----------
+    function requestPermissionsIfNeeded() {
+        var promises = [];
+        // iOS 13+ wymaga jawnej zgody
+        if (typeof DeviceMotionEvent !== "undefined" &&
+            typeof DeviceMotionEvent.requestPermission === "function") {
+            promises.push(
+                DeviceMotionEvent.requestPermission().then(function (r) {
+                    log("DeviceMotion zgoda: " + r);
+                    return r;
+                }).catch(function (e) { log("DeviceMotion odmowa: " + e); return "denied"; })
+            );
+        }
+        if (typeof DeviceOrientationEvent !== "undefined" &&
+            typeof DeviceOrientationEvent.requestPermission === "function") {
+            promises.push(
+                DeviceOrientationEvent.requestPermission().then(function (r) {
+                    log("DeviceOrientation zgoda: " + r);
+                    return r;
+                }).catch(function (e) { log("DeviceOrientation odmowa: " + e); return "denied"; })
+            );
+        }
+        return Promise.all(promises);
+    }
+
+    function start() {
+        if (state.started) return;
+        if (!window.isSecureContext) {
+            log("⚠️ Uwaga: strona nie działa w bezpiecznym kontekście (HTTPS). Czujniki mogą być zablokowane.");
+        }
+        requestPermissionsIfNeeded().then(function () {
+            state.started = true;
+            $("btnStart").textContent = "✅ Czujniki włączone";
+            $("btnStart").disabled = true;
+            $("btnRec").disabled = false;
+
+            if ("DeviceMotionEvent" in window) {
+                window.addEventListener("devicemotion", onMotion, true);
+                log("devicemotion: nasłuch ✅");
+            } else {
+                log("devicemotion: BRAK na tym urządzeniu.");
+            }
+            if ("DeviceOrientationEvent" in window) {
+                window.addEventListener("deviceorientation", onOrientation, true);
+                log("deviceorientation: nasłuch ✅");
+            } else {
+                log("deviceorientation: BRAK na tym urządzeniu.");
+            }
+            tryGenericSensors();
+
+            log("Czujniki uruchomione. Poruszaj telefonem lub zasłoń ekran.");
+        });
+    }
+
+    // ---------- Nagrywanie – kontrola ----------
+    function toggleRec() {
+        if (!state.recording) {
+            state.recording = true;
+            state.recStart = performance.now();
+            state.samples = [];
+            $("btnRec").textContent = "⏹ Zatrzymaj";
+            $("recBadge").textContent = "NAGRYWANIE…";
+            $("dotRec").style.background = "var(--bad)";
+            $("dotRec").style.boxShadow = "0 0 8px var(--bad)";
+            $("btnDownload").disabled = true;
+            log("▶️ Rozpoczęto nagrywanie.");
+        } else {
+            state.recording = false;
+            $("btnRec").textContent = "⏺ Nagrywaj";
+            $("recBadge").textContent = "zatrzymane (" + state.samples.length + " próbek)";
+            $("dotRec").style.background = "var(--muted)";
+            $("dotRec").style.boxShadow = "none";
+            $("btnDownload").disabled = state.samples.length === 0;
+            log("⏹ Zatrzymano nagrywanie. Próbek: " + state.samples.length);
+        }
+    }
+
+    function downloadCSV() {
+        if (!state.samples.length) return;
+        var cols = ["t","accX","accY","accZ","gyroA","gyroB","gyroG","oriC","oriB","oriG","prox","light","covered"];
+        var lines = [cols.join(",")];
+        state.samples.forEach(function (s) {
+            lines.push(cols.map(function (c) {
+                var v = s[c];
+                if (v === null || v === undefined) return "";
+                if (typeof v === "boolean") return v ? "1" : "0";
+                return v;
+            }).join(","));
+        });
+        var blob = new Blob([lines.join("\n")], { type: "text/csv" });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement("a");
+        var stamp = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+        a.href = url;
+        a.download = "sensor-check-" + stamp + ".csv";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+        log("⬇️ Wyeksportowano CSV: " + state.samples.length + " próbek.");
+    }
+
+    // ---------- Pętla renderu ----------
+    function loop() {
+        render();
+        updateRecUI();
+        requestAnimationFrame(loop);
+    }
+
+    // ---------- Init ----------
+    $("btnStart").addEventListener("click", start);
+    $("btnRec").addEventListener("click", toggleRec);
+    $("btnDownload").addEventListener("click", downloadCSV);
+
+    // Ukryj notkę iOS na urządzeniach bez requestPermission
+    if (!(typeof DeviceMotionEvent !== "undefined" &&
+          typeof DeviceMotionEvent.requestPermission === "function")) {
+        // to nie iOS 13+ — notka mniej istotna, ale zostawiamy skróconą
+        $("iosNote").innerHTML = "Kliknij <b>„Włącz czujniki"</b>, poruszaj telefonem lub zasłoń ekran, aby zobaczyć odczyty. Najlepiej działa przez <b>HTTPS</b> na telefonie.";
+    }
+
+    loop();
+})();
+</script>
+</body>
+</html>
