@@ -1,31 +1,187 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Respring PoC</title>
-    <style>
-        /* Skrajnie zasobożerne style CSS zmuszające WebKit do awarii */
-        html, body {
-            margin: 0;
-            padding: 0;
-            background: #000;
-        }
-        div {
-            backdrop-filter: blur(100px);
-            -webkit-backdrop-filter: blur(100px);
-            width: 100vw;
-            height: 100vh;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#000000">
+<title>Respring</title>
+<style>
+    * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html, body {
+        height: 100%;
+        background: #000;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        overflow: hidden;
+        color: #fff;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+
+    /* ===== Ekran startowy ===== */
+    #start {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 28px;
+        background: radial-gradient(circle at 50% 40%, #1c1c22, #000);
+        transition: opacity .35s ease;
+    }
+    #start h1 { font-size: 28px; font-weight: 600; letter-spacing: .5px; }
+    #start p  { font-size: 15px; color: #8a8a92; max-width: 300px; text-align: center; line-height: 1.5; }
+    #go {
+        margin-top: 8px;
+        padding: 14px 40px;
+        font-size: 17px;
+        font-weight: 600;
+        color: #fff;
+        background: #0a84ff;
+        border: none;
+        border-radius: 999px;
+        cursor: pointer;
+        transition: transform .1s ease, background .2s ease;
+    }
+    #go:active { transform: scale(.94); background: #0060df; }
+
+    /* ===== Ekran respringu (czarny + throbber) ===== */
+    #respring {
+        position: fixed;
+        inset: 0;
+        background: #000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity .25s ease;
+    }
+    #respring.on { opacity: 1; pointer-events: auto; }
+
+    /* Klasyczny iOS-owy throbber: 12 zanikających „szprych" */
+    .throbber {
+        position: relative;
+        width: 42px;
+        height: 42px;
+        animation: sprin 1s steps(12) infinite;
+    }
+    .throbber i {
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 3px;
+        height: 10px;
+        margin: -5px 0 0 -1.5px;
+        border-radius: 2px;
+        background: #fff;
+        transform-origin: 50% 21px;
+        opacity: .15;
+    }
+    @keyframes sprin { to { transform: rotate(360deg); } }
+
+    /* ===== Ekran blokady (po „powrocie") ===== */
+    #lock {
+        position: fixed;
+        inset: 0;
+        background:
+            linear-gradient(180deg, rgba(0,0,0,.25), rgba(0,0,0,.55)),
+            radial-gradient(circle at 30% 25%, #3a4a6b, #10151f 70%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        padding-top: 16vh;
+        opacity: 0;
+        transform: scale(1.06);
+        pointer-events: none;
+        transition: opacity .5s ease, transform .5s ease;
+    }
+    #lock.on { opacity: 1; transform: scale(1); pointer-events: auto; }
+    #lock .lockicon { font-size: 20px; opacity: .8; margin-bottom: 22px; }
+    #lock .time { font-size: 78px; font-weight: 300; letter-spacing: -1px; line-height: 1; }
+    #lock .date { font-size: 19px; opacity: .85; margin-top: 6px; }
+    #lock .hint { position: fixed; bottom: 42px; font-size: 14px; opacity: .55; }
+    #lock .grabber { position: fixed; bottom: 12px; width: 130px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.6); }
+</style>
 </head>
 <body>
-    <div></div>
-    <script>
-        // Nieskończona pętla generująca potężne obciążenie pamięci (Memory Leak)
-        while (true) {
-            window.history.pushState(null, null, Math.random().toString());
-        }
-    </script>
+
+<div id="start">
+    <h1>Respring</h1>
+    <p>Symulacja respringu iOS — efekt wizualny z wibracją. Nic nie crashuje, w pełni bezpieczne.</p>
+    <button id="go">Respring</button>
+</div>
+
+<div id="respring">
+    <div class="throbber" id="throbber"></div>
+</div>
+
+<div id="lock">
+    <div class="lockicon">🔒</div>
+    <div class="time" id="clock">--:--</div>
+    <div class="date" id="today"></div>
+    <div class="hint">przesuń w górę, aby otworzyć</div>
+    <div class="grabber"></div>
+</div>
+
+<script>
+    // Zbuduj 12 szprych throbbera z narastającą jasnością
+    const th = document.getElementById('throbber');
+    for (let i = 0; i < 12; i++) {
+        const s = document.createElement('i');
+        s.style.transform = 'rotate(' + (i * 30) + 'deg)';
+        s.style.opacity = (0.15 + (i / 12) * 0.85).toFixed(2);
+        th.appendChild(s);
+    }
+
+    function vibrate(pattern) {
+        if (navigator.vibrate) { try { navigator.vibrate(pattern); } catch (e) {} }
+    }
+
+    function updateClock() {
+        const d = new Date();
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mm = String(d.getMinutes()).padStart(2, '0');
+        document.getElementById('clock').textContent = hh + ':' + mm;
+        const days = ['niedziela','poniedziałek','wtorek','środa','czwartek','piątek','sobota'];
+        const months = ['stycznia','lutego','marca','kwietnia','maja','czerwca','lipca','sierpnia','września','października','listopada','grudnia'];
+        document.getElementById('today').textContent =
+            days[d.getDay()] + ', ' + d.getDate() + ' ' + months[d.getMonth()];
+    }
+
+    const start    = document.getElementById('start');
+    const respring = document.getElementById('respring');
+    const lock     = document.getElementById('lock');
+
+    document.getElementById('go').addEventListener('click', () => {
+        // 1) krótka wibracja „start respringu"
+        vibrate(40);
+
+        // 2) zaciemnienie ekranu startowego
+        start.style.opacity = '0';
+        setTimeout(() => { start.style.display = 'none'; }, 350);
+
+        // 3) czarny ekran + throbber (~4,5 s, jak prawdziwy respring)
+        setTimeout(() => respring.classList.add('on'), 300);
+
+        // 4) po respringu: wibracja i „powrót" na ekran blokady
+        setTimeout(() => {
+            vibrate([0, 30, 60, 30]);   // charakterystyczne „bum-bum" po odblokowaniu
+            updateClock();
+            respring.classList.remove('on');
+            lock.classList.add('on');
+            setInterval(updateClock, 1000);
+        }, 4800);
+    });
+
+    // Tap na ekranie blokady → wróć do startu (restart demo)
+    lock.addEventListener('click', () => {
+        lock.classList.remove('on');
+        start.style.display = 'flex';
+        requestAnimationFrame(() => { start.style.opacity = '1'; });
+    });
+</script>
 </body>
 </html>
