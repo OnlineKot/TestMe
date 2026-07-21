@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#0b0f19">
+    <title>TestMe — katalog testów</title>
+    <style>
+        :root {
+            --bg: #0b0f19; --card: #151b2b; --card2: #1c2438; --line: #2a344d;
+            --text: #e7ecf5; --muted: #8b97b3; --accent: #4f8cff;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        html, body {
+            margin: 0; padding: 0; background: var(--bg); color: var(--text);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        header {
+            padding: 26px 18px 18px; border-bottom: 1px solid var(--line);
+            text-align: center;
+        }
+        h1 { margin: 0; font-size: 24px; letter-spacing: -0.5px; }
+        header p { margin: 6px 0 0; color: var(--muted); font-size: 13.5px; }
+        main { max-width: 640px; margin: 0 auto; padding: 18px 14px 48px; }
+        .grid { display: grid; gap: 12px; }
+        a.card {
+            display: block; text-decoration: none; color: inherit;
+            background: var(--card); border: 1px solid var(--line);
+            border-radius: 16px; padding: 16px 16px;
+            transition: transform .06s ease, border-color .15s ease, background .15s ease;
+        }
+        a.card:active { transform: scale(0.98); }
+        a.card:hover { border-color: var(--accent); background: var(--card2); }
+        .card .row { display: flex; align-items: center; gap: 12px; }
+        .emoji { font-size: 28px; flex: 0 0 auto; }
+        .card h2 { margin: 0; font-size: 17px; }
+        .card p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+        .arrow { margin-left: auto; color: var(--muted); font-size: 20px; }
+        footer { text-align: center; color: var(--muted); font-size: 12px; padding: 10px; }
+        .tag { display:inline-block; font-size:11px; padding:2px 8px; border-radius:999px;
+               background: var(--card2); color: var(--muted); border:1px solid var(--line); margin-top:8px; }
+    </style>
+</head>
+<body>
+<header>
+    <h1>🧪 TestMe</h1>
+    <p>Katalog małych testów i aplikacji webowych. Otwórz na telefonie.</p>
+</header>
+<main>
+    <div class="grid">
+        <a class="card" href="Sensors/">
+            <div class="row">
+                <span class="emoji">📟</span>
+                <div>
+                    <h2>Sensor Check</h2>
+                    <p>Odczyt czujników telefonu (akcelerometr, żyroskop, orientacja, światło), telefonik w pudełku 3D i nagrywanie do CSV.</p>
+                    <span class="tag">Android · iPhone</span>
+                </div>
+                <span class="arrow">›</span>
+            </div>
+        </a>
+        <a class="card" href="Respring/">
+            <div class="row">
+                <span class="emoji">🌀</span>
+                <div>
+                    <h2>Respring PoC</h2>
+                    <p>Test obciążeniowy WebKit (proof of concept).</p>
+                </div>
+                <span class="arrow">›</span>
+            </div>
+        </a>
+    </div>
+</main>
+<footer>OnlineKot/TestMe · GitHub Pages</footer>
+</body>
+</html>
