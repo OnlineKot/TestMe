@@ -4,7 +4,7 @@ Webowa aplikacja (HTML + JS, bez zależności) do **sprawdzania danych z fizyczn
 
 ## Co robi
 
-- **Telefon w pudełku** — wykrywa, czy telefon jest schowany/zasłonięty na podstawie czujnika zbliżeniowego oraz natężenia światła (ciemno → „w pudełku").
+- **Telefon w pudełku (3D)** — animowana scena 3D: telefonik siedzi w przezroczystym pudełku i **porusza się fizycznie** zgodnie z akcelerometrem (np. gdy urządzenie leci w dół, telefonik przemieszcza się w dół pudełka i odbija się od ścianek) oraz **obraca się** zgodnie z orientacją. Dodatkowo wykrywa zasłonięcie na podstawie czujnika zbliżeniowego i natężenia światła (ciemno → „w pudełku").
 - **Akcelerometr** — przyspieszenie X/Y/Z (m/s²).
 - **Żyroskop** — prędkość obrotowa α/β/γ (°/s).
 - **Orientacja / kompas** — kierunek i pochylenie (na iPhone przez `webkitCompassHeading`).

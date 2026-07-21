@@ -136,6 +136,93 @@
             padding: 10px 12px; font-size: 12.5px; color: var(--muted); margin-bottom: 12px;
         }
         a { color: var(--accent); }
+
+        /* ---------- Scena 3D: telefon w pudełku ---------- */
+        .scene {
+            width: 100%;
+            height: 260px;
+            perspective: 700px;
+            perspective-origin: 50% 35%;
+            margin: 6px 0 4px;
+            touch-action: none;
+        }
+        .box3d {
+            position: relative;
+            width: 160px;
+            height: 200px;
+            margin: 30px auto 0;
+            transform-style: preserve-3d;
+            transform: rotateX(-18deg) rotateY(-24deg);
+        }
+        /* Ściany pudełka (półprzezroczyste) */
+        .face {
+            position: absolute;
+            border: 1px solid rgba(79,140,255,0.55);
+            background: rgba(79,140,255,0.06);
+            box-sizing: border-box;
+        }
+        .face.front, .face.back { width: 160px; height: 200px; left: 0; top: 0; }
+        .face.left, .face.right { width: 120px; height: 200px; left: 20px; top: 0; }
+        .face.top, .face.bottom { width: 160px; height: 120px; left: 0; top: 40px; }
+        .face.front  { transform: translateZ(60px); background: rgba(79,140,255,0.03); }
+        .face.back   { transform: translateZ(-60px); }
+        .face.left   { transform: rotateY(-90deg) translateZ(20px); }
+        .face.right  { transform: rotateY(90deg) translateZ(140px); }
+        .face.top    { transform: rotateX(90deg) translateZ(40px); }
+        .face.bottom { transform: rotateX(-90deg) translateZ(-160px); background: rgba(79,140,255,0.12); }
+
+        /* Telefonik w środku */
+        .phone3d {
+            position: absolute;
+            left: 50%; top: 50%;
+            width: 52px; height: 104px;
+            margin: -52px 0 0 -26px;
+            transform-style: preserve-3d;
+            will-change: transform;
+        }
+        .phone-face {
+            position: absolute; width: 52px; height: 104px; left: 0; top: 0;
+            border-radius: 9px;
+            box-sizing: border-box;
+        }
+        .phone-front {
+            transform: translateZ(5px);
+            background: linear-gradient(160deg, #2b3550 0%, #1a2137 100%);
+            border: 1.5px solid #4f8cff;
+            box-shadow: 0 0 14px rgba(79,140,255,0.5);
+            overflow: hidden;
+        }
+        .phone-front .screen {
+            position: absolute; inset: 5px; border-radius: 6px;
+            background: radial-gradient(circle at 50% 35%, #6fa8ff 0%, #21406e 70%);
+        }
+        .phone-front .notch {
+            position: absolute; top: 3px; left: 50%; width: 16px; height: 3px;
+            margin-left: -8px; background: #0b0f19; border-radius: 3px; z-index: 2;
+        }
+        .phone-back {
+            transform: translateZ(-5px) rotateY(180deg);
+            background: linear-gradient(160deg, #1a2137 0%, #0f1524 100%);
+            border: 1.5px solid #33507a;
+        }
+        .phone-side { background: #33507a; }
+        .phone-side.l { width: 10px; height: 104px; left: -5px;
+            transform: rotateY(-90deg) translateZ(26px); }
+        .phone-side.r { width: 10px; height: 104px; left: 42px;
+            transform: rotateY(90deg) translateZ(26px); }
+        .phone-side.t { width: 52px; height: 10px; top: -5px;
+            transform: rotateX(90deg) translateZ(52px); }
+        .phone-side.b { width: 52px; height: 10px; top: 94px;
+            transform: rotateX(-90deg) translateZ(-52px); }
+        .phone-shadow {
+            position: absolute; left: 50%; top: 50%; width: 60px; height: 24px;
+            margin: -12px 0 0 -30px;
+            background: radial-gradient(ellipse, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0) 70%);
+            transform: rotateX(90deg) translateZ(-90px);
+            filter: blur(1px);
+        }
+        .scene-hint { text-align: center; color: var(--muted); font-size: 11.5px; margin-top: 2px; }
+
         @media (max-width: 360px) { .rows { grid-template-columns: 1fr 1fr; } }
     </style>
 </head>
@@ -161,6 +248,26 @@
     <div class="card" id="boxCard">
         <h2><span class="dot" id="dotBox"></span> Telefon w pudełku</h2>
         <p class="sub">Wykrywanie na podstawie czujnika zbliżeniowego i światła (ekran zasłonięty / ciemno).</p>
+        <div class="scene">
+            <div class="box3d" id="box3d">
+                <div class="face back"></div>
+                <div class="face left"></div>
+                <div class="face right"></div>
+                <div class="face top"></div>
+                <div class="face bottom"></div>
+                <div class="phone-shadow" id="phoneShadow"></div>
+                <div class="phone3d" id="phone3d">
+                    <div class="phone-face phone-front"><div class="notch"></div><div class="screen"></div></div>
+                    <div class="phone-face phone-back"></div>
+                    <div class="phone-face phone-side l"></div>
+                    <div class="phone-face phone-side r"></div>
+                    <div class="phone-face phone-side t"></div>
+                    <div class="phone-face phone-side b"></div>
+                </div>
+                <div class="face front"></div>
+            </div>
+        </div>
+        <div class="scene-hint" id="sceneHint">Ruszaj telefonem — telefonik w pudełku porusza się i obraca tak samo. Puść w dół → leci w dół.</div>
         <div class="box-state out" id="boxState">— czekam —</div>
         <div class="box-hint" id="boxHint">Przyłóż palec do góry ekranu lub schowaj telefon, aby przetestować.</div>
         <div class="light-bar" id="lightBar"></div>
@@ -234,10 +341,19 @@
         samples: [],
         latest: {
             accX: null, accY: null, accZ: null,
+            linX: 0, linY: 0, linZ: 0,     // przyspieszenie liniowe (bez grawitacji)
             gyroA: null, gyroB: null, gyroG: null,
             oriC: null, oriB: null, oriG: null,
             prox: null, light: null, covered: null
         }
+    };
+
+    // Fizyka telefonika w pudełku 3D
+    var box = {
+        px: 0, py: 0, pz: 0,   // pozycja w pudełku
+        vx: 0, vy: 0, vz: 0,   // prędkość
+        LIMIT: 46,             // maks. wychylenie od środka (px)
+        prevT: 0
     };
 
     // ---------- Skróty ----------
@@ -335,6 +451,14 @@
         if (ag.x !== null && ag.x !== undefined) {
             state.latest.accX = ag.x; state.latest.accY = ag.y; state.latest.accZ = ag.z;
             setDot("dotAcc", true);
+        }
+        // Przyspieszenie liniowe (bez grawitacji) — steruje ruchem telefonika w pudełku.
+        var lin = e.acceleration;
+        if (lin && lin.x !== null && lin.x !== undefined) {
+            state.latest.linX = lin.x; state.latest.linY = lin.y; state.latest.linZ = lin.z;
+        } else if (ag.x !== null && ag.x !== undefined) {
+            // Fallback: gdy brak e.acceleration, odejmujemy przybliżoną grawitację z orientacji.
+            state.latest.linX = ag.x; state.latest.linY = ag.y; state.latest.linZ = ag.z - 9.81;
         }
         if (rr.alpha !== null && rr.alpha !== undefined) {
             state.latest.gyroA = rr.alpha; state.latest.gyroB = rr.beta; state.latest.gyroG = rr.gamma;
@@ -496,10 +620,67 @@
         log("⬇️ Wyeksportowano CSV: " + state.samples.length + " próbek.");
     }
 
+    // ---------- Fizyka telefonika w pudełku 3D ----------
+    function updateBox3D(now) {
+        var dt = box.prevT ? Math.min(0.05, (now - box.prevT) / 1000) : 0.016;
+        box.prevT = now;
+
+        var l = state.latest;
+        // Mapowanie osi urządzenia na osie pudełka:
+        //  X: lewo/prawo, Y: góra/dół (ekran), Z: głębokość.
+        // e.acceleration.y jest ujemne przy ruchu w dół → telefonik leci w dół.
+        var K = 3.2;          // czułość: przyspieszenie → prędkość
+        var FRICTION = 0.86;  // tłumienie prędkości
+        var SPRING = 3.5;     // sprężyna wracająca do środka
+
+        box.vx += (l.linX || 0) * K * dt;
+        box.vy += -(l.linY || 0) * K * dt;   // ekranowe Y w dół = ujemne, więc odwracamy
+        box.vz += -(l.linZ || 0) * K * dt;
+
+        // Sprężyna do środka + tarcie
+        box.vx += (0 - box.px) * SPRING * dt;
+        box.vy += (0 - box.py) * SPRING * dt;
+        box.vz += (0 - box.pz) * SPRING * dt;
+        box.vx *= FRICTION; box.vy *= FRICTION; box.vz *= FRICTION;
+
+        box.px += box.vx; box.py += box.vy; box.pz += box.vz;
+
+        // Odbicie od ścianek pudełka
+        function clampAxis(p, v, key) {
+            if (p > box.LIMIT) { box[key] = box.LIMIT; box["v" + key.charAt(1)] *= -0.35; }
+            else if (p < -box.LIMIT) { box[key] = -box.LIMIT; box["v" + key.charAt(1)] *= -0.35; }
+        }
+        clampAxis(box.px, box.vx, "px");
+        clampAxis(box.py, box.vy, "py");
+        clampAxis(box.pz, box.vz, "pz");
+
+        // Obrót telefonika = orientacja urządzenia (β przód/tył, γ lewo/prawo).
+        var rotX = (l.oriB !== null ? l.oriB : 0);
+        var rotY = (l.oriG !== null ? l.oriG : 0);
+
+        var phone = $("phone3d");
+        if (phone) {
+            phone.style.transform =
+                "translate3d(" + box.px.toFixed(1) + "px," +
+                (-box.py).toFixed(1) + "px," + box.pz.toFixed(1) + "px) " +
+                "rotateX(" + rotX.toFixed(1) + "deg) rotateY(" + rotY.toFixed(1) + "deg)";
+        }
+        var shadow = $("phoneShadow");
+        if (shadow) {
+            // cień podąża za pozycją X/Z i słabnie, gdy telefon się unosi
+            var lift = Math.max(0.2, 1 - (box.py + box.LIMIT) / (box.LIMIT * 2));
+            shadow.style.transform =
+                "translate3d(" + box.px.toFixed(1) + "px,0," + box.pz.toFixed(1) +
+                "px) rotateX(90deg) translateZ(-90px)";
+            shadow.style.opacity = (0.35 + lift * 0.4).toFixed(2);
+        }
+    }
+
     // ---------- Pętla renderu ----------
-    function loop() {
+    function loop(now) {
         render();
         updateRecUI();
+        updateBox3D(now || performance.now());
         requestAnimationFrame(loop);
     }
 
@@ -512,7 +693,7 @@
     if (!(typeof DeviceMotionEvent !== "undefined" &&
           typeof DeviceMotionEvent.requestPermission === "function")) {
         // to nie iOS 13+ — notka mniej istotna, ale zostawiamy skróconą
-        $("iosNote").innerHTML = "Kliknij <b>„Włącz czujniki"</b>, poruszaj telefonem lub zasłoń ekran, aby zobaczyć odczyty. Najlepiej działa przez <b>HTTPS</b> na telefonie.";
+        $("iosNote").innerHTML = "Kliknij <b>„Włącz czujniki”</b>, poruszaj telefonem lub zasłoń ekran, aby zobaczyć odczyty. Najlepiej działa przez <b>HTTPS</b> na telefonie.";
     }
 
     loop();
